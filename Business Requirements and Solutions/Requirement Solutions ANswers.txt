@@ -1,0 +1,96 @@
+1)select employee_id, concat(first_name,'  ',last_name) as professional_name, title
+from employee 
+order by levels desc
+limit 1
+
+
+2)select count(billing_country),billing_country from invoice
+group by billing_country
+order by 1 desc
+
+3)select employee_id, concat(first_name,'  ',last_name) as professional_name, title
+from employee 
+order by levels desc
+limit 1
+
+4) select billing_city as city, billing_country as country, sum(total) from invoice
+group by billing_city , billing_country
+order by 3 desc 
+limit 1
+
+5)select concat(c.first_name,' ',c.last_name)as customer_name,c.city,c.country,sum(i.total) 
+from customer c
+join invoice i on
+c.customer_id=i.customer_id
+group by i.customer_id, customer_name,c.city,c.country
+order by 4 desc
+limit 1
+
+
+Medium section
+1) select concat(c.first_name,' ',c.last_name) as listner_name
+, c.email from customer c
+join invoice i on c.customer_id=i.customer_id
+join invoice_line i_l on i.invoice_id=i_l.invoice_id
+join playlist_track p_t on i_l.track_id=p_t.track_id
+join track t on p_t.track_id=t.track_id
+join genre ge on t.genre_id=ge.genre_id
+where ge.name='Rock'
+group by listner_name,c.email
+order by c.email
+
+2.select rank()over(order by count(t.track_id) desc) as rnk, a.name,count(t.track_id) as total_songs
+from artist a
+join album al on a.artist_id=al.artist_id
+join track t on al.album_id=t.album_id
+join genre g on t.genre_id=g.genre_id
+group by a.name
+order by rnk limit 10
+
+3.select name,milliseconds from track
+where milliseconds>(select round(avg(milliseconds)) from track)
+order by milliseconds desc
+
+
+Difficult Section
+1)  WITH amount_spent_on_each_artist as
+ (select concat(cus.first_name,' ',cus.last_name) as Customer_name, a.name,sum(inv.unit_price*inv.quantity) as purchase,
+  rank()over(partition by a.name order by sum(inv.unit_price*inv.quantity) desc) as rnkk
+  from customer cus join invoice i on 
+ cus.customer_id=i.customer_id
+ join invoice_line inv 
+ on i.invoice_id=inv.invoice_id
+ join track t on inv.track_id=t.track_id
+ JOIN album alb ON alb.album_id = t.album_id
+ JOIN artist a ON a.artist_id = alb.artist_id
+ group by 1,2
+ order by 2 asc, 3 desc)
+ 
+ select * from amount_spent_on_each_artist order by  amount_spent_on_each_artist.purchase desc
+
+
+2) WITH Popular_genre_For_Each_Country as
+(Select g.name, i.billing_country as musiclover_country,count(inv.quantity) as purchases_for_genre
+ , rank()Over(partition by i.billing_country order by count(inv.quantity) desc) as rnk
+ from genre g
+ join track t on g.genre_id=t.genre_id
+ join invoice_line inv on t.track_id=inv.track_id
+ join invoice i on i.invoice_id=inv.invoice_id
+ group by 1,2
+ order by 2 asc,3 desc)
+
+Select * from Popular_genre_For_Each_Country where Popular_genre_For_Each_Country.rnk<=1 
+order by Popular_genre_For_Each_Country.purchases_for_genre desc
+
+3) With king_customer as 
+( Select concat(cus.first_name,' ',cus.last_name) as Customer_name,cus.country,sum(inv.unit_price*inv.quantity) as individual_purchase
+ , rank()over(partition by cus.country order by sum(inv.unit_price*inv.quantity) desc) as rankk
+ from customer cus join invoice i on 
+ cus.customer_id=i.customer_id
+ join invoice_line inv 
+ on i.invoice_id=inv.invoice_id
+ group by 1,2
+ order by 2 asc, 3 desc
+ ) 
+ 
+ select * from king_customer where king_customer.rankk=1
